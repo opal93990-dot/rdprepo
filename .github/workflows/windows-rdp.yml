@@ -1,10 +1,17 @@
 name: Windows RDP
+
 on:
   workflow_dispatch:
     inputs:
-      server_id:        { required: true }
-      rdp_password:     { required: true }
-      ngrok_authtoken:  { required: true }
+      server_id:
+        description: 'Server ID'
+        required: true
+      rdp_password:
+        description: 'RDP Password'
+        required: true
+      ngrok_authtoken:
+        description: 'Ngrok Auth Token'
+        required: true
 
 jobs:
   build:
