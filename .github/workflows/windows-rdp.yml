@@ -1,1 +1,42 @@
+name: Windows RDP
+on:
+  workflow_dispatch:
+    inputs:
+      server_id:        { required: true }
+      rdp_password:     { required: true }
+      ngrok_authtoken:  { required: true }
 
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 360
+    steps:
+      - name: Set password
+        shell: powershell
+        run: net user runneradmin "${{ github.event.inputs.rdp_password }}"
+
+      - name: Enable RDP
+        shell: powershell
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+      - name: Setup Ngrok
+        shell: powershell
+        run: |
+          iwr https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip -OutFile ngrok.zip
+          Expand-Archive ngrok.zip -DestinationPath C:\ngrok
+          C:\ngrok\ngrok.exe config add-authtoken ${{ github.event.inputs.ngrok_authtoken }}
+          Start-Process -FilePath C:\ngrok\ngrok.exe -ArgumentList "tcp 3389" -NoNewWindow
+          Start-Sleep 15
+
+      - name: Print IP (For Bot)
+        shell: powershell
+        run: |
+          $tunnels = (Invoke-RestMethod http://127.0.0.1:4040/api/tunnels).tunnels
+          $ip = $tunnels[0].public_url -replace "tcp://", ""
+          Write-Output "RDP_IP_IS:$ip"
+
+      - name: Keep alive
+        shell: powershell
+        run: Start-Sleep -Seconds 21000
